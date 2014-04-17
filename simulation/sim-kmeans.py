@@ -251,7 +251,7 @@ def simulate(hits_relevance,flag,p,NO_cluster,NO_FILE=False):
 
 		for i in complete:
 			fp.write('cluster:%s\n' % str(i))
-			ls = hit_o_in_cluster.get(i)
+			ls = hits_relevance.get(i)
 			tmp = []
 			total_sofar = 0
 			NO_r = 0
@@ -301,15 +301,39 @@ def simulate(hits_relevance,flag,p,NO_cluster,NO_FILE=False):
 					continue		
 
 	return hit_order_navg
+
+
+def read_hit_order(filename):
+	total = 0
+	hits_relevance = {}		# hits_relevance = {clusterID:[relevance,...]} order by docid & offset
+	fp = open(filename,'r')
+	clusterID = 0
+	for line in fp:
+		if line[0] == '-':
+			clusterID += 1
+			hits_relevance[clusterID] = []
+		elif line[0] == 'd':
+			continue
+		else:
+			(docID,hitID,hit_offset,hits_relevant) = line.split('\t')
+			hits_relevant = eval(hits_relevant)
+			hits_relevance[clusterID].append(hits_relevant)
+			total += 1
+	print 'total hits: %d' % total
+	print 'total clusters: %d' % len(hits_relevance)
+	return hits_relevance
+
 				
 def main():
 	ap = {}	# ap = {flag:[avg ap,...]}
 	i = 0
-	line2docid = readDocID('line2docid.txt')
-	cluster = readClusterDistribution('cluster',line2docid)
-	sorted_cluster = sort_sm('distance',cluster,line2docid)
-	hits_relevance = list_hits(sorted_cluster)
-	(D,monster,cluster_d,total_hit,cluster_log) = log(hits_relevance,sorted_cluster,NO_FILE=False)
+#	line2docid = readDocID('line2docid.txt')
+#	cluster = readClusterDistribution('cluster',line2docid)
+#	sorted_cluster = sort_sm('distance',cluster,line2docid)
+#	hits_relevance = list_hits(sorted_cluster)
+#	(D,monster,cluster_d,total_hit,cluster_log) = log(hits_relevance,sorted_cluster,NO_FILE=False)
+	
+	hits_relevance = read_hit_order('hit&relevance_table-10.18.kmeans.txt')
 	
 	while i <20:
 		i += 1
@@ -326,7 +350,7 @@ def main():
 			s = 0
 			print '***********flag == %d*************' % flag
 			while f<10:
-				hit_order = simulate(hits_relevance,flag,p,NO_cluster,NO_FILE=True)
+				hit_order = simulate(hits_relevance,flag,p,NO_cluster,NO_FILE=False)
 				total = len(hit_order)
 				Non_r = hit_order.count(0)
 				NO_r = total-Non_r	

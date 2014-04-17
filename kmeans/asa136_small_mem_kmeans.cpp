@@ -21,7 +21,7 @@ extern double **matrix;
 extern int print_flag;
 extern clock_t start,end;
 
-void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[], 
+int kmns ( int m, int n, double *center[], int k, int ic1[], int nc[], 
 	int iter, double wss[], int *ifault )
 
 //
@@ -68,7 +68,7 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
 
 	if ( k <= 1 || m <= k ){
 		*ifault = 3;
-		return;
+		return 1;
 	}
 	ic2 = new int[m];
 	an1 = new double[k];
@@ -407,7 +407,7 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
 	delete [] itran;
 	delete [] live;
 
-	return;
+	return 1;
 }
 //****************************************************************************80
 

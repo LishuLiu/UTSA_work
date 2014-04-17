@@ -1,4 +1,4 @@
-void kmns ( int m, int n, double *c[], int k, int ic1[], int nc[], 
+int kmns ( int m, int n, double *c[], int k, int ic1[], int nc[], 
   int iter, double wss[], int *ifault );
 void optra ( int m, int n, double *c[], int k, int ic1[], 
   int ic2[], int nc[], double an1[], double an2[], int ncp[], double d[], 

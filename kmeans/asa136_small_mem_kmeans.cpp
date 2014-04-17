@@ -164,6 +164,7 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
 		}
 	}
 
+
 //
 //  Update cluster centers to be the average of points contained within them.
 //
@@ -237,19 +238,13 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
 	*ifault = 2;
 
 	for ( ij = 1; ij <= iter; ij++ ){
-		cout << "~~~~iter " << ij << "~~~~" << endl;
-		timestamp ( );
 //
 //  In this stage, there is only one pass through the data.   Each
 //  point is re-allocated, if necessary, to the cluster that will
 //  induce the maximum reduction in within-cluster sum of squares.
 //
 		optra ( m, n, center, k, ic1, ic2, nc, an1, an2, ncp, d, itran, live, &indx );	
-		cout << "after optran" << endl;
-		for (i = 0; i < m; i++){
-			cout << ic1[i] << " ";
-		}
-		cout << endl;
+
 //
 //  Stop if no transfer took place in the last M optimal transfer steps.
 //
@@ -264,11 +259,7 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
 //  data until no further change is to take place.
 //
 		qtran ( m, n, center, k, ic1, ic2, nc, an1, an2, ncp, d, itran, &indx );
-		cout << "after qtran" << endl;
-		for (i = 0; i < m; i++){
-			cout << ic1[i] << " ";
-		}
-		cout << endl;
+
 //
 //  If there are only two clusters, there is no need to re-enter the
 //  optimal transfer stage.
@@ -283,6 +274,7 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
 		for ( l = 1; l <= k; l++ ){
 			ncp[l-1] = 0;
 		}
+		timestamp ( );
 	}
 //
 //  If the maximum number of iterations was taken without convergence,
@@ -352,7 +344,7 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
 	ofstream output2;
 	output2.open("distance.txt");
 	ofstream output3;
-	output1.open("cluster_distribution.txt");
+	output3.open("cluster_distribution.txt");
 	for(i = 1 ; i <= m ; i++){
 		output1 <<  ic1[i-1] << " " << endl;
 		output2 << dist[i-1] << " " << endl;
@@ -368,7 +360,7 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
 		} 
 		output3 << endl;
 	}	
-	cout << "\nCluster distribution saved into 'cluster.txt'." << endl;
+	cout << "\nCluster distribution saved into 'cluster_distribution.txt'." << endl;
 	output1.close();
 	output2.close();
 	output3.close();

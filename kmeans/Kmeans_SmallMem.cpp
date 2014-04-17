@@ -21,7 +21,7 @@
 
 using namespace std;
 
-void test01 (int,int,int,char*);
+void test01 (int,int,int,char*,int);
 int *length;
 double **matrix;
 
@@ -61,25 +61,25 @@ int main(int argc, char* argv[])
 	int k;
 	int m;
 	int n;
-//	int iter;
+	int iter;
 	char filename[128];
 	m = atoi(argv[1]);
 	n = atoi(argv[2]);
 	k = atoi(argv[3]);
 	memset(filename,0,sizeof(filename));
 	strcpy(filename,argv[4]);
-//	iter = atoi(argv[5]);
+	iter = atoi(argv[5]);
 	length = new int[m];//length of each row
 	matrix = new double*[m];
   
-	test01 (m,n,k,filename);
+	test01 (m,n,k,filename,iter);
   
 	timestamp ( );
 	return 0;
 }
 //****************************************************************************80
 
-void test01 (int m, int n, int k, char* filename)
+void test01 (int m, int n, int k, char* filename, int iter)
 
 //****************************************************************************80
 //
@@ -104,7 +104,7 @@ void test01 (int m, int n, int k, char* filename)
 	int *ic1;
 	int ifault;
 	string line;
-	int iter = 50;
+//	int iter;
 	int j;
 	int *nc;
 	int nc_sum;
@@ -126,7 +126,7 @@ void test01 (int m, int n, int k, char* filename)
 //
 	ifstream input (filename);
 	if(!input.is_open()){
-		cout<<"Unable to open file."<<endl;
+		cout<<"Unable to open file test.txt"<<endl;
 		return;
 	}
   
@@ -152,14 +152,14 @@ void test01 (int m, int n, int k, char* filename)
 	}
 	
 	input.close ( );
-	cout<<"Data read into memory."<<endl;
+	cout << "Data read!" << endl;
 //
 //  Get random k points. Shuffle entire m points, and use first k points.
 //
 	srand(time(NULL));		//initialize random seed
 	vector<int> rand;
 	for ( i = 0; i < m; i++) rand.push_back(i); // 0 1 2 3 ... m-1
-//	random_shuffle (rand.begin(),rand.end());
+	random_shuffle (rand.begin(),rand.end());
 
 	
 //
@@ -169,6 +169,7 @@ void test01 (int m, int n, int k, char* filename)
 	double** center = new double*[k];
 	for ( i = 1; i <= k; i++ )
 	{
+		cout << i << endl;
 		center[i-1] = new double[n];
 		int row = rand[i-1];		//0~m-1
 		len_a = length[row];
@@ -185,7 +186,8 @@ void test01 (int m, int n, int k, char* filename)
 			}
 		}
 	}
-	cout<<"Random center chosen."<<endl;
+
+	cout << "Center chosen!" << endl;
 
 //
 //  Compute the clusters.

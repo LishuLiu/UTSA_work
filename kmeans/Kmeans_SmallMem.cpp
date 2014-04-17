@@ -35,21 +35,6 @@ int main(int argc, char* argv[])
 //
 //    MAIN is the main program for ASA136_PRB.
 //
-//  Discussion:
-//
-//    ASA136_PRB calls the ASA136 routines.
-//
-//  Licensing:
-//
-//    This code is distributed under the GNU LGPL license. 
-//
-//  Modified:
-//
-//    15 February 2008
-//
-//  Author:
-//
-//    John Burkardt
 //
 {
 	timestamp ( );
@@ -58,10 +43,7 @@ int main(int argc, char* argv[])
 	cout << "Usage: Kmeans m n k filename iter.max"<<endl;
 	return -1;
 	}
-	int k;
-	int m;
-	int n;
-	int iter;
+	int k,m,n,iter;
 	char filename[128];
 	m = atoi(argv[1]);
 	n = atoi(argv[2]);
@@ -87,80 +69,68 @@ void test01 (int m, int n, int k, char* filename, int iter)
 //
 //    TEST01 tries out the ASA136 routine.
 //
-//  Licensing:
-//
-//    This code is distributed under the GNU LGPL license. 
-//
-//  Modified:
-//
-//    15 February 2008
-//
-//  Author:
-//
-//    John Burkardt
 //
 {
-	int i;
-	int *ic1;
-	int ifault;
-	string line;
-//	int iter;
-	int j;
-	int *nc;
-	int nc_sum;
-	double *wss;
-	double wss_sum;
-	int len_a;
+	int i,j,ifault,nw,nd,len,word;
+//	int *ic1,*nc;
+	double value;
 
-	ic1 = new int[m];
-	nc = new int[k];
-	wss = new double[k];
+//	ic1 = new int[m];
+//	nc = new int[m];
 
 	cout << "********************************************\n";
 	cout << "TEST01\n";
 	cout << "  Test the KMNS algorithm,\n";
 	cout << "  Applied Statistics Algorithm #136.\n";
 	cout << "********************************************\n";
+
 //
 //  Read the data.
 //
-	ifstream input (filename);
-	if(!input.is_open()){
-		cout<<"Unable to open file test.txt"<<endl;
+	
+	FILE *fp;
+	nw=0;nd=0;
+
+  	printf("reading data from %s\n", filename);
+	fp = fopen(filename,"r");
+	if(!fp){
+		printf("Unable to open file.\n");
 		return;
 	}
-  
-
-	for(i=0 ; i<m ; ++i){
-		int len = 0;
-		int iSpace = 0;
-		getline(input, line);
-		len = line.length();
-		for(int l = 0; l< len;l++){
-			if(isspace(int(line[l]))){
-				iSpace++;
-			}
-		} 
-		len = iSpace;       // len of row. Note: This applies for cases where each line end up with a space.
-		length[i] = len;
-		matrix[i] = new double[len];
-		// split line and read into matrix
-		istringstream iss(line);
-		for(j=0 ; j<n; ++j){           
-			iss >> matrix[i][j];
+	matrix = (double**)malloc(sizeof(double*)*m);
+	length = (int*)malloc(sizeof(int)*m);
+	while((fscanf(fp,"%10d",&len)!=EOF))
+	{
+	    matrix[nd] = (double*)malloc(sizeof(double)*len*2);
+		length[nd] = len*2;
+		for (j=0;j<len*2;j=j+2)
+		{
+		    fscanf(fp,"%10d:%lf",&word,&value);
+			matrix[nd][j] = (double)word;
+			matrix[nd][j+1] = (double)value;
 		}
+		nd++;
 	}
+	fclose(fp);
 	
-	input.close ( );
-	cout << "Data read!" << endl;
+	//test
+	printf("Data read.\n");
+	/*
+	printf("\nHere's a few data:\n");
+	for (i=0;i<5;i++){
+		for (j=0;j<20;j++)
+			printf("%.10f ",matrix[i][j]);
+		printf("\n");
+		}
+	*/	
+
 //
 //  Get random k points. Shuffle entire m points, and use first k points.
 //
 	srand(time(NULL));		//initialize random seed
 	vector<int> rand;
 	for ( i = 0; i < m; i++) rand.push_back(i); // 0 1 2 3 ... m-1
-	random_shuffle (rand.begin(),rand.end());
-
+//	random_shuffle (rand.begin(),rand.end());
 	
 //
 //  Initialize the cluster centers.
@@ -169,11 +139,10 @@ void test01 (int m, int n, int k, char* filename, int iter)
 	double** center = new double*[k];
 	for ( i = 1; i <= k; i++ )
 	{
-		cout << i << endl;
 		center[i-1] = new double[n];
 		int row = rand[i-1];		//0~m-1
-		len_a = length[row];
-		for ( j = 0; j < len_a; j = j+2 )
+		len = length[row];
+		for ( j = 0; j < len; j = j+2 )
 		{
 			int dim = int(matrix[row][j])-1;
 			double value = matrix[row][j+1];
@@ -186,13 +155,18 @@ void test01 (int m, int n, int k, char* filename, int iter)
 			}
 		}
 	}
-
-	cout << "Center chosen!" << endl;
+	
+	for (i = 0; i < m ; i ++){
+		cout << endl;
+		for (j = 0 ; j < k ; j ++){
+			cout << "[" << i << "][" << j << "]: " << distance(matrix[i],center[j], length[i],n) << "\t";
+			}
+		}
 
 //
 //  Compute the clusters.
 //
-	kmns ( m, n, center, k, ic1, nc, iter, wss, &ifault );
+	kmns ( m, n, center, k, /* ic1, nc, */iter, &ifault );
 
 	if ( ifault != 0 )
 	{
@@ -202,32 +176,9 @@ void test01 (int m, int n, int k, char* filename, int iter)
 		return;
 	}
 
-	/*
-	cout << "\n";
-	cout << "  Cluster  Population  Energy\n";
-	cout << "\n";
 
-	nc_sum = 0;
-	wss_sum = 0.0;
+//	delete [] ic1;
 
-	for ( i = 1; i <= k; i++ )
-	{
-		cout << "  " << setw(8) << i
-				<< "  " << setw(8) << nc[i-1]
-				<< "  " << setw(14) << wss[i-1] << "\n";
-		nc_sum = nc_sum + nc[i-1];
-		wss_sum = wss_sum + wss[i-1];
-	}
-
-	cout << "\n";
-	cout << "     Total"
-		<< "  " << setw(8) << nc_sum
-		<< "  " << setw(14) << wss_sum << "\n";
-	*/
-
-	delete [] ic1;
-	delete [] nc;
-	delete [] wss;
     
     /*
 	//print center

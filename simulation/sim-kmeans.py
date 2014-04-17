@@ -13,16 +13,16 @@ functionc in this script:
 read_as_mt		(input_csv,sep,head):										return data
 som				(data,xdim,ydim,topo,seed=None):							return sm
 sort_sm			(sm,NO_cluster,clusterID = None,NO_FILE=False):				return sorted_result
-list_hits		(sorted_result,clusterID=None,NO_FILE=False):				return hits_relevance
+list_hits		(sorted_result,clusterID=None,NO_FILE=False):				return hit_o_in_cluster
 revise_order	(hit_order_navg):											return revised_order
-simulate		(hits_relevance,flag,p,NO_cluster,NO_FILE=False):			return hit_order_navg
-re_som			(clusterID,clusters,data,xdim,ydim):						return new_cluster,hits_relevance
+simulate		(hit_o_in_cluster,flag,p,NO_cluster,NO_FILE=False):			return hit_order_navg
+re_som			(clusterID,clusters,data,xdim,ydim):						return new_cluster,hit_o_in_cluster
 count_R_P_AP	(hit_order,flag):											return (R,P,AP)
-log				(hits_relevance,sorted_result,NO_FILE=False)				return (D,monster,cluster_d,total_hit,cluster_log)
+log				(hit_o_in_cluster,sorted_result,NO_FILE=False)				return (D,monster,cluster_d,total_hit,cluster_log)
 """
 
 #NO_cluster = 200		# initial cluster number
-ID = '10.18.kmeans'	# identifier of each result
+ID = '10.25.kmeans'	# identifier of each result
 
 
 
@@ -98,14 +98,14 @@ def list_hits(sorted_cluster):
 		cursor = conn.cursor()
 		output = 'hit&relevance_table-'+ID+'.txt'		# list docID, hitID, hit_offset, hits_relevant group by cluster
 		fp2 = open(output,'w')
-		hits_relevance = {}		# hits_relevance = {clusterID:[relevance,...]} order by docid & offset
+		hit_o_in_cluster = {}		# hit_o_in_cluster = {clusterID:[relevance,...]} order by docid & offset
 
 		for clusterID in sorted_cluster.keys():	# each cluster
-			hits_relevance[clusterID] = []
+			hit_o_in_cluster[clusterID] = []
 			ls = sorted_cluster[clusterID]	# ls = [(docid,distance),...]
 			fp2.write('-------------------'+str(clusterID)+'-------------------------\n')
 			fp2.write('docID\t\thitID\t\thit_offset\t\thits_relevant\n')
-			hits_relevance[clusterID] = []
+			hit_o_in_cluster[clusterID] = []
 			for (docid,dist) in ls:
 				cursor.execute('SELECT docid, CAST(FileOffset as UNSIGNED), Relevance FROM hits \
 				WHERE documenttabledocid = %d ORDER BY CAST(FileOffset as UNSIGNED)' % docid) # fetch hits in the doc
@@ -113,7 +113,7 @@ def list_hits(sorted_cluster):
 				for row in rows: 	# row = each hit 
 					(hitid, offset, relevance) = row
 					fp2.write('%d\t%d\t%d\t%d\n' % (docid,hitid,offset,relevance))
-					hits_relevance[clusterID].append(relevance)						
+					hit_o_in_cluster[clusterID].append(relevance)						
 
 		conn.commit()
 		cursor.close()
@@ -124,7 +124,7 @@ def list_hits(sorted_cluster):
 		print "Error %d: %s" % (e.args[0],e.args[1])
 		sys.exit(1)
 
-	return hits_relevance
+	return hit_o_in_cluster
 
 
 def count_R_P_AP(hit_order):
@@ -157,10 +157,10 @@ def count_R_P_AP(hit_order):
 		return (R,P,AP)
 
 
-def log(hits_relevance,sorted_cluster,NO_FILE=False):
+def log(hit_o_in_cluster,sorted_cluster,NO_FILE=False):
 	"""
 	To: output clustet log
-	INPUT:	hits_relevance	dict		{clusterID:[hit_r (in order)]} after some been re_clustered and sorted
+	INPUT:	hit_o_in_cluster	dict		{clusterID:[hit_r (in order)]} after some been re_clustered and sorted
 	OUTPUT:	cluster_log			dict		{clusterID:[NO_DOC,NO_HIT,DEVIATION,PERCENTAGE,PRECISION,AP,DISTANCE(MIN),DISTANCE(MAX),DISTANCE(MEAN),DISTANCE(VAR)]}
 			D					float		standard deviation on NO_HIT			
 			cluster_d			dict		{clusterID:NO_HIT,...,'STD':D}
@@ -177,12 +177,12 @@ def log(hits_relevance,sorted_cluster,NO_FILE=False):
 
 	total_hit = 0
 	devi = []
-	for clusterID in hits_relevance:
-		hit_order = hits_relevance.get(clusterID)
+	for clusterID in hit_o_in_cluster:
+		hit_order = hit_o_in_cluster.get(clusterID)
 		(R,P,AP) = count_R_P_AP(hit_order)
 		s_P = format(P,'%')
 		s_AP = format(AP,'%')
-		NO_HIT = len(hits_relevance.get(clusterID))
+		NO_HIT = len(hit_o_in_cluster.get(clusterID))
 		total_hit += NO_HIT
 		cluster_log[clusterID] = [NO_HIT,s_P,s_AP]
 		devi.append(NO_HIT)		# get NO_HIT in each cluster to count deviation
@@ -229,7 +229,7 @@ def log(hits_relevance,sorted_cluster,NO_FILE=False):
 	return (D,monster,cluster_d,total_hit,cluster_log)
 
 
-def simulate(hits_relevance,flag,p,NO_cluster,NO_FILE=False):
+def simulate(hit_o_in_cluster,flag,p,NO_cluster,NO_FILE=False):
 	"""
 	INPUT:	hit_o_in_cluster	dict	{clusterID:[hit_r (in order)]}
 			flag				int		threashold of least number of hits when leave a cluster
@@ -239,7 +239,7 @@ def simulate(hits_relevance,flag,p,NO_cluster,NO_FILE=False):
 	"""
 
 	from random import shuffle
-	complete = hits_relevance.keys()	# get a full list of key
+	complete = hit_o_in_cluster.keys()	# get a full list of key
 	shuffle(complete)	# sort the list randomly
 
 	total_r_sofar = 0
@@ -251,7 +251,7 @@ def simulate(hits_relevance,flag,p,NO_cluster,NO_FILE=False):
 
 		for i in complete:
 			fp.write('cluster:%s\n' % str(i))
-			ls = hits_relevance.get(i)
+			ls = hit_o_in_cluster.get(i)
 			tmp = []
 			total_sofar = 0
 			NO_r = 0
@@ -278,7 +278,7 @@ def simulate(hits_relevance,flag,p,NO_cluster,NO_FILE=False):
 		fp.write('**************************************************************************************\n')
 	else:
 		for i in complete:
-			ls = hits_relevance.get(i)
+			ls = hit_o_in_cluster.get(i)
 			tmp = []
 			total_sofar = 0
 			NO_r = 0
@@ -302,40 +302,133 @@ def simulate(hits_relevance,flag,p,NO_cluster,NO_FILE=False):
 
 	return hit_order_navg
 
-
 def read_hit_order(filename):
 	total = 0
-	hits_relevance = {}		# hits_relevance = {clusterID:[relevance,...]} order by docid & offset
+	ct_docs = 0
+	hit_o_in_cluster = {}		# hit_o_in_cluster = {clusterID:{docid:[relevance,...]},...} order by docid & offset
 	fp = open(filename,'r')
 	clusterID = 0
 	for line in fp:
 		if line[0] == '-':
 			clusterID += 1
-			hits_relevance[clusterID] = []
+#			print clusterID
+			hit_o_in_cluster[clusterID] = {}
 		elif line[0] == 'd':
 			continue
 		else:
 			(docID,hitID,hit_offset,hits_relevant) = line.split('\t')
 			hits_relevant = eval(hits_relevant)
-			hits_relevance[clusterID].append(hits_relevant)
+			if hit_o_in_cluster[clusterID].has_key(docID):				
+				hit_o_in_cluster[clusterID][docID].append(hits_relevant)
+			else:
+				hit_o_in_cluster[clusterID][docID] = [hits_relevant]
+				ct_docs += 1
+				
 			total += 1
 	print 'total hits: %d' % total
-	print 'total clusters: %d' % len(hits_relevance)
-	return hits_relevance
+	print 'total docs: %d' % ct_docs
+	print 'total clusters: %d' % len(hit_o_in_cluster)
+	return hit_o_in_cluster
+	
+def simulate_random(hit_o_in_cluster,flag,p,NO_cluster,NO_FILE=False):	# randomly select a clusterID, then randomly select a document, navigate from the first hit in that doc, if relevant, keep on going, otherwise go to another doc
+	
+	from random import shuffle
+	complete = hit_o_in_cluster.keys()	# get a full list of key/clusterID
+	shuffle(complete)	# sort the list randomly
 
-				
+	total_r_sofar = 0
+	hit_order_navg = []
+
+	if NO_FILE == False:
+		filename = 'sim_out_'+ID+'.txt'
+		fp = open(filename, 'a')
+
+		for clusterID in complete:
+			fp.write('cluster:%s\n' % str(clusterID))
+			tmp = []
+			total_sofar = 0
+			NO_r = 0
+			counter = 0
+			P = 0
+			
+			ls = hit_o_in_cluster.get(clusterID)
+			docs = ls.keys()
+#			shuffle(docs)
+			for docID in docs:
+				re_ls = hit_o_in_cluster.get(clusterID).get(docID)
+			
+				for r in re_ls:
+					total_sofar += 1
+					counter += 1
+					tmp.append(r)
+					if r == 0:		# if non-relevant
+						hit_order_navg.append(0)
+						break	# go to another doc
+					else:			# if relevant
+						NO_r += 1
+						total_r_sofar += 1
+						hit_order_navg.append(total_r_sofar)
+						
+				P = 1.0*NO_r/total_sofar
+				if counter >= flag and P < p:
+					fp.write('%d hits navigated through\n' % counter)
+					fp.write('hit nagivated in this cluster: %s' % tmp)
+					fp.write('\n')
+					break
+				else:
+					continue
+		fp.write('**************************************************************************************\n')
+		
+	else:		# no file
+		for clusterID in complete:
+			tmp = []
+			total_sofar = 0
+			NO_r = 0
+			counter = 0
+			P = 0
+			
+			ls = hit_o_in_cluster.get(clusterID)
+			docs = ls.keys()
+			shuffle(docs)
+			for docID in docs:
+				re_ls = hit_o_in_cluster.get(clusterID).get(docID)
+			
+				for r in re_ls:
+					total_sofar += 1
+					counter += 1
+					tmp.append(r)
+					if r == 0:		# if non-relevant
+						hit_order_navg.append(0)
+						break	# go to another doc
+					else:			# if relevant
+						NO_r += 1
+						total_r_sofar += 1
+						hit_order_navg.append(total_r_sofar)
+						
+				P = 1.0*NO_r/total_sofar
+				if counter >= flag and P < p:
+					fp.write('%d hits navigated through\n' % counter)
+					fp.write('hit nagivated in this cluster: %s' % tmp)
+					fp.write('\n')
+					break
+				else:
+					continue
+
+	return hit_order_navg
+	
+					
 def main():
 	ap = {}	# ap = {flag:[avg ap,...]}
 	i = 0
 #	line2docid = readDocID('line2docid.txt')
 #	cluster = readClusterDistribution('cluster',line2docid)
 #	sorted_cluster = sort_sm('distance',cluster,line2docid)
-#	hits_relevance = list_hits(sorted_cluster)
-#	(D,monster,cluster_d,total_hit,cluster_log) = log(hits_relevance,sorted_cluster,NO_FILE=False)
+#	hit_o_in_cluster = list_hits(sorted_cluster)
+#	(D,monster,cluster_d,total_hit,cluster_log) = log(hit_o_in_cluster,sorted_cluster,NO_FILE=False)
 	
-	hits_relevance = read_hit_order('hit&relevance_table-10.18.kmeans.txt')
-	
-	while i <20:
+	hit_o_in_cluster = read_hit_order('hit&relevance_table-10.18.kmeans.txt')
+	Run_ct = 20
+	while i < Run_ct:
 		i += 1
 
 		NO_cluster = INI_NO_cluster
@@ -345,12 +438,13 @@ def main():
 		
 	
 		p = 0.5
+		Flag_ct = 10
 		for flag in range(10,50):
 			f = 0
 			s = 0
 			print '***********flag == %d*************' % flag
-			while f<10:
-				hit_order = simulate(hits_relevance,flag,p,NO_cluster,NO_FILE=False)
+			while f < Flag_ct:
+				hit_order = simulate_random(hit_o_in_cluster,flag,p,NO_cluster,NO_FILE=False)
 				total = len(hit_order)
 				Non_r = hit_order.count(0)
 				NO_r = total-Non_r	
@@ -358,7 +452,7 @@ def main():
 				s += AP
 				print '%d hits intotal,%d non-relevant,%d relevant' % (total,Non_r,NO_r)
 				f += 1
-			avg = s/10
+			avg = s/Flag_ct
 			print 'flag: %d\tAvg Ap: %f' % (flag,avg)
 
 			if ap.has_key(flag):
@@ -369,7 +463,7 @@ def main():
 	print '!!!!!!!!!!!!!!!FINAL AVG AP!!!!!!!!!!!!!!'
 	print ap
 	for flag in ap:
-		avg_avg_ap = sum(ap.get(flag))/20
+		avg_avg_ap = sum(ap.get(flag))/Run_ct
 		print 'flag: %d\tAvg Avg Ap: %f' % (flag,avg_avg_ap)
 	
 if __name__ == '__main__':

@@ -22,7 +22,7 @@ log				(hit_o_in_cluster,sorted_result,NO_FILE=False)				return (D,monster,clust
 """
 
 #NO_cluster = 200		# initial cluster number
-ID = '2.28.kmeans_rand1'	# identifier of each result
+ID = 'kmeans.rand4.docF2'	# identifier of each result
 
 
 
@@ -68,7 +68,7 @@ def readClusterDistribution(filename,line2docid):
 
 
 def sort_sm(filename,cluster,line2docid):
-	sorted_cluster = {}		# sorted_cluster = {clusterID:{docid:dist,...},...} sort by distance
+	sorted_cluster = {}		# sorted_cluster = {clusterID:[(docid,dist),...],...} sort by distance
 	fp = open(filename,'r')
 	docid2dist = {}			# docid2dist = {docid:distance,...}
 	lineID = 1
@@ -353,7 +353,7 @@ def simulate_random(hit_o_in_cluster,flag,p,NO_cluster,NO_FILE=False):	# randoml
 			
 			ls = hit_o_in_cluster.get(clusterID)
 			docs = ls.keys()
-			shuffle(docs)
+#			shuffle(docs)
 			for docID in docs:
 				re_ls = hit_o_in_cluster.get(clusterID).get(docID)
 			
@@ -415,18 +415,232 @@ def simulate_random(hit_o_in_cluster,flag,p,NO_cluster,NO_FILE=False):	# randoml
 					continue
 
 	return hit_order_navg
+
+
+def simulate_random2(hit_o_in_cluster,flag,p,NO_cluster,doc_flag, NO_FILE=False):	# randomly select a clusterID, then randomly select a document, navigate from the first hit in that doc, if relevant, keep on going, otherwise, keep on going untill doc_flag of non-relevant hits has reached.
 	
-					
+	from random import shuffle
+	complete = hit_o_in_cluster.keys()	# get a full list of key/clusterID
+	shuffle(complete)	# sort the list randomly
+
+	total_r_sofar = 0
+	hit_order_navg = []
+
+	if NO_FILE == False:
+		filename = 'sim_out_'+ID+'.txt'
+		fp = open(filename, 'a')
+
+		for clusterID in complete:
+			fp.write('cluster:%s\n' % str(clusterID))
+			tmp = []
+			total_sofar = 0
+			NO_r = 0
+			counter = 0
+			P = 0
+			
+			ls = hit_o_in_cluster.get(clusterID)
+			docs = ls.keys()
+			shuffle(docs)
+			for docID in docs:
+				re_ls = hit_o_in_cluster.get(clusterID).get(docID)
+				non_re = doc_flag
+				for r in re_ls:
+					total_sofar += 1
+					counter += 1
+					tmp.append(r)
+					if r == 0:		# if non-relevant
+						hit_order_navg.append(0)
+						if non_re == 0:
+							break	# go to another doc
+						else:
+							non_re -= 1	# keep on going
+					else:			# if relevant
+						NO_r += 1
+						total_r_sofar += 1
+						hit_order_navg.append(total_r_sofar)
+						
+				P = 1.0*NO_r/total_sofar
+				if counter >= flag*doc_flag and P < p:
+					fp.write('%d hits navigated through\n' % counter)
+					fp.write('hit nagivated in this cluster: %s' % tmp)
+					fp.write('\n')
+					break
+				else:
+					continue
+		fp.write('**************************************************************************************\n')
+	return hit_order_navg	
+
+def simulate_random3(hit_o_in_cluster,flag,p,NO_cluster,NO_FILE=False):	# randomly select a clusterID, then randomly select a document, navigate from the a random hit in that doc, if relevant, keep on going to next random hit, otherwise go to another doc
+	
+	from random import shuffle
+	complete = hit_o_in_cluster.keys()	# get a full list of key/clusterID
+	shuffle(complete)	# sort the list randomly
+
+	total_r_sofar = 0
+	hit_order_navg = []
+
+	if NO_FILE == False:
+		filename = 'sim_out_'+ID+'.txt'
+		fp = open(filename, 'a')
+
+		for clusterID in complete:
+			fp.write('cluster:%s\n' % str(clusterID))
+			tmp = []
+			total_sofar = 0
+			NO_r = 0
+			counter = 0
+			P = 0
+			
+			ls = hit_o_in_cluster.get(clusterID)
+			docs = ls.keys()
+			shuffle(docs)
+			for docID in docs:
+				re_ls = hit_o_in_cluster.get(clusterID).get(docID)
+				shuffle(re_ls)
+				for r in re_ls:
+					total_sofar += 1
+					counter += 1
+					tmp.append(r)
+					if r == 0:		# if non-relevant
+						hit_order_navg.append(0)
+						break	# go to another doc
+					else:			# if relevant
+						NO_r += 1
+						total_r_sofar += 1
+						hit_order_navg.append(total_r_sofar)
+						
+				P = 1.0*NO_r/total_sofar
+				if counter >= flag and P < p:
+					fp.write('%d hits navigated through\n' % counter)
+					fp.write('hit nagivated in this cluster: %s' % tmp)
+					fp.write('\n')
+					break
+				else:
+					continue
+		fp.write('**************************************************************************************\n')
+	return hit_order_navg
+
+
+def simulate_random4(hit_o_in_cluster,flag,p,NO_cluster,doc_flag,NO_FILE=False):	# randomly select a clusterID, then randomly select a document, navigate from the a random hit in that doc, if relevant, keep on going to next random hit, otherwise exit doc if doc_flag non-relevant hits found
+	
+	from random import shuffle
+	complete = hit_o_in_cluster.keys()	# get a full list of key/clusterID
+	shuffle(complete)	# sort the list randomly
+
+	total_r_sofar = 0
+	hit_order_navg = []
+
+	if NO_FILE == False:
+		filename = 'sim_out_'+ID+'.txt'
+		fp = open(filename, 'a')
+
+		for clusterID in complete:
+			fp.write('cluster:%s\n' % str(clusterID))
+			tmp = []
+			total_sofar = 0
+			NO_r = 0
+			counter = 0
+			P = 0
+			
+			ls = hit_o_in_cluster.get(clusterID)
+			docs = ls.keys()
+			shuffle(docs)
+			for docID in docs:
+				re_ls = hit_o_in_cluster.get(clusterID).get(docID)
+				non_re = doc_flag
+				shuffle(re_ls)
+				for r in re_ls:
+					total_sofar += 1
+					counter += 1
+					tmp.append(r)
+					if r == 0:		# if non-relevant
+						hit_order_navg.append(0)
+						if non_re == 0:
+							break	# go to another doc
+						else:
+							non_re -= 1	# keep on going
+					else:			# if relevant
+						NO_r += 1
+						total_r_sofar += 1
+						hit_order_navg.append(total_r_sofar)
+						
+				P = 1.0*NO_r/total_sofar
+				if counter >= flag and P < p:
+					fp.write('%d hits navigated through\n' % counter)
+					fp.write('hit nagivated in this cluster: %s' % tmp)
+					fp.write('\n')
+					break
+				else:
+					continue
+		fp.write('**************************************************************************************\n')
+	return hit_order_navg
+	
+
+def simulate_random5(hit_o_in_cluster,flag,p,NO_cluster,doc_flag,NO_FILE=False):	# randomly select a clusterID, then randomly select a document, navigate from the a random hit in that doc, if relevant, keep on going sequenctially, otherwise go to next randmo hit. exit doc if doc_flag non-relevant hits found
+	
+	from random import shuffle
+	complete = hit_o_in_cluster.keys()	# get a full list of key/clusterID
+	shuffle(complete)	# sort the list randomly
+
+	total_r_sofar = 0
+	hit_order_navg = []
+
+	if NO_FILE == False:
+		filename = 'sim_out_'+ID+'.txt'
+		fp = open(filename, 'a')
+
+		for clusterID in complete:
+			fp.write('cluster:%s\n' % str(clusterID))
+			tmp = []
+			total_sofar = 0
+			NO_r = 0
+			counter = 0
+			P = 0
+			
+			ls = hit_o_in_cluster.get(clusterID)
+			docs = ls.keys()
+			shuffle(docs)
+			for docID in docs:
+				re_ls = hit_o_in_cluster.get(clusterID).get(docID)
+				non_re = doc_flag
+				shuffle(re_ls)
+				for r in re_ls:
+					total_sofar += 1
+					counter += 1
+					tmp.append(r)
+					if r == 0:		# if non-relevant
+						hit_order_navg.append(0)
+						if non_re == 0:
+							break	# go to another doc
+						else:
+							non_re -= 1	# keep on going
+					else:			# if relevant
+						NO_r += 1
+						total_r_sofar += 1
+						hit_order_navg.append(total_r_sofar)
+						
+				P = 1.0*NO_r/total_sofar
+				if counter >= flag and P < p:
+					fp.write('%d hits navigated through\n' % counter)
+					fp.write('hit nagivated in this cluster: %s' % tmp)
+					fp.write('\n')
+					break
+				else:
+					continue
+		fp.write('**************************************************************************************\n')
+	return hit_order_navg
+						
 def main():
 	ap = {}	# ap = {flag:[avg ap,...]}
 	i = 0
-	line2docid = readDocID('line2docid.txt')
-	cluster = readClusterDistribution('cluster.txt',line2docid)
-	sorted_cluster = sort_sm('distance.txt',cluster,line2docid)
-	hit_o_in_cluster = list_hits(sorted_cluster)
-	(D,monster,cluster_d,total_hit,cluster_log) = log(hit_o_in_cluster,sorted_cluster,NO_FILE=False)
+	doc_flag = 2
+#	line2docid = readDocID('line2docid.txt')
+#	cluster = readClusterDistribution('cluster',line2docid)
+#	sorted_cluster = sort_sm('distance',cluster,line2docid)
+#	hit_o_in_cluster = list_hits(sorted_cluster)
+#	(D,monster,cluster_d,total_hit,cluster_log) = log(hit_o_in_cluster,sorted_cluster,NO_FILE=False)
 	
-#	hit_o_in_cluster = read_hit_order('hit&relevance_table-10.18.kmeans.txt')
+	hit_o_in_cluster = read_hit_order('hit&relevance_table-10.18.kmeans.txt')
 	Run_ct = 20
 	while i < Run_ct:
 		i += 1
@@ -439,12 +653,12 @@ def main():
 	
 		p = 0.5
 		Flag_ct = 10
-		for flag in range(10,50):
+		for flag in range(10,50*doc_flag):
 			f = 0
 			s = 0
 			print '***********flag == %d*************' % flag
 			while f < Flag_ct:
-				hit_order = simulate_random(hit_o_in_cluster,flag,p,NO_cluster,NO_FILE=False)
+				hit_order = simulate_random4(hit_o_in_cluster,flag,p,NO_cluster,doc_flag,NO_FILE=False)
 				total = len(hit_order)
 				Non_r = hit_order.count(0)
 				NO_r = total-Non_r	

@@ -3,7 +3,7 @@
 # external files necessary: cluster distribtion, distance, line2ID map, ECT.hits
 # docID range(1~29381) in database
 
-import operator,os
+import operator
 import _mysql
 import MySQLdb as mdb
 
@@ -22,9 +22,7 @@ log				(hit_o_in_cluster,sorted_result,NO_FILE=False)				return (D,monster,clust
 """
 
 #NO_cluster = 200		# initial cluster number
-ID = '1.2.kmeans'	# identifier of each result
-Dir = os.getcwd()
-NF = Dir + '/navigation_footprint/'
+ID = '2.28.kmeans_rand1'	# identifier of each result
 
 
 
@@ -100,22 +98,22 @@ def list_hits(sorted_cluster):
 		cursor = conn.cursor()
 		output = 'hit&relevance_table-'+ID+'.txt'		# list docID, hitID, hit_offset, hits_relevant group by cluster
 		fp2 = open(output,'w')
-		hit_o_in_cluster = {}		# hit_o_in_cluster = {clusterID:{docid:[relevance,...]},...} order by docid & offset
+		hit_o_in_cluster = {}		# hit_o_in_cluster = {clusterID:[relevance,...]} order by docid & offset
 
 		for clusterID in sorted_cluster.keys():	# each cluster
-			hit_o_in_cluster[clusterID] = {}
+			hit_o_in_cluster[clusterID] = []
 			ls = sorted_cluster[clusterID]	# ls = [(docid,distance),...]
 			fp2.write('-------------------'+str(clusterID)+'-------------------------\n')
 			fp2.write('docID\t\thitID\t\thit_offset\t\thits_relevant\n')
+			hit_o_in_cluster[clusterID] = []
 			for (docid,dist) in ls:
-				hit_o_in_cluster[clusterID][docid] = []
 				cursor.execute('SELECT docid, CAST(FileOffset as UNSIGNED), Relevance FROM hits \
 				WHERE documenttabledocid = %d ORDER BY CAST(FileOffset as UNSIGNED)' % docid) # fetch hits in the doc
 				rows = cursor.fetchall()
 				for row in rows: 	# row = each hit 
 					(hitid, offset, relevance) = row
 					fp2.write('%d\t%d\t%d\t%d\n' % (docid,hitid,offset,relevance))
-					hit_o_in_cluster[clusterID][docid].append(relevance)						
+					hit_o_in_cluster[clusterID].append(relevance)						
 
 		conn.commit()
 		cursor.close()
@@ -420,20 +418,15 @@ def simulate_random(hit_o_in_cluster,flag,p,NO_cluster,NO_FILE=False):	# randoml
 	
 					
 def main():
-	print NF
-	# navigation_footprint = {(run,flag):[navigated hit relevance, ...], ...}
-	apr = {}	# ap = {(run,flag):[avg ap,...]}
-	pr = {} # precision_rate = {flag:[avg pr,...]}
-	rr = {} # recall_rate = {flag:[avg rr,...]}
-	
+	ap = {}	# ap = {flag:[avg ap,...]}
 	i = 0
-#	line2docid = readDocID('line2docid.txt')
-#	cluster = readClusterDistribution('cluster',line2docid)
-#	sorted_cluster = sort_sm('distance',cluster,line2docid)
-#	hit_o_in_cluster = list_hits(sorted_cluster)
-#	(D,monster,cluster_d,total_hit,cluster_log) = log(hit_o_in_cluster,sorted_cluster,NO_FILE=False)
+	line2docid = readDocID('line2docid.txt')
+	cluster = readClusterDistribution('cluster.txt',line2docid)
+	sorted_cluster = sort_sm('distance.txt',cluster,line2docid)
+	hit_o_in_cluster = list_hits(sorted_cluster)
+	(D,monster,cluster_d,total_hit,cluster_log) = log(hit_o_in_cluster,sorted_cluster,NO_FILE=False)
 	
-	hit_o_in_cluster = read_hit_order('hit&relevance_table-1.2.kmeans.txt')
+#	hit_o_in_cluster = read_hit_order('hit&relevance_table-10.18.kmeans.txt')
 	Run_ct = 20
 	while i < Run_ct:
 		i += 1
@@ -452,31 +445,26 @@ def main():
 			print '***********flag == %d*************' % flag
 			while f < Flag_ct:
 				hit_order = simulate_random(hit_o_in_cluster,flag,p,NO_cluster,NO_FILE=False)
-				filename = NF + 'run' + str(i) + '.flag' + str(flag)
-				fp = open(filename,'w')
-				fp.write(str(hit_order))
-				fp.close()
-				
-#				total = len(hit_order)
-#				Non_r = hit_order.count(0)
-#				NO_r = total-Non_r	
-#				(R,P,AP) = count_R_P_AP(hit_order)
-#				s += AP
-#				print '%d hits intotal,%d non-relevant,%d relevant' % (total,Non_r,NO_r)
+				total = len(hit_order)
+				Non_r = hit_order.count(0)
+				NO_r = total-Non_r	
+				(R,P,AP) = count_R_P_AP(hit_order)
+				s += AP
+				print '%d hits intotal,%d non-relevant,%d relevant' % (total,Non_r,NO_r)
 				f += 1
-#			avg = s/Flag_ct
-#			print 'flag: %d\tAvg Ap: %f' % (flag,avg)
+			avg = s/Flag_ct
+			print 'flag: %d\tAvg Ap: %f' % (flag,avg)
 
-#			if ap.has_key(flag):
-#				ap[flag].append(avg)
-#			else:
-#				ap[flag] = [avg]
+			if ap.has_key(flag):
+				ap[flag].append(avg)
+			else:
+				ap[flag] = [avg]
 	
 	print '!!!!!!!!!!!!!!!FINAL AVG AP!!!!!!!!!!!!!!'
-#	print ap
-#	for flag in ap:
-#		avg_avg_ap = sum(ap.get(flag))/Run_ct
-#		print 'flag: %d\tAvg Avg Ap: %f' % (flag,avg_avg_ap)
+	print ap
+	for flag in ap:
+		avg_avg_ap = sum(ap.get(flag))/Run_ct
+		print 'flag: %d\tAvg Avg Ap: %f' % (flag,avg_avg_ap)
 	
 if __name__ == '__main__':
 	INI_NO_cluster = 200

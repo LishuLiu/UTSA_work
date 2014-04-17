@@ -8,4 +8,4 @@ void qtran ( double *a[], int m, int n, double *c[], int k, int ic1[],
   int itran[], int *indx );
 double r8_huge ( void );
 void timestamp ( void );
-double distance(double a[], double c[]);
+double distance(double a[], double c[], int len_a, int len_c);

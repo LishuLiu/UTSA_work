@@ -2,7 +2,7 @@
 //
 
 //# include "stdafx.h"
-# include "asa136_small_mem_kmeans.h"
+# include "asa136_kmeans_v3.h"
 # include <cstdlib>
 # include <iostream>
 # include <iomanip>
@@ -21,7 +21,10 @@
 using namespace std;
 
 void test01 (int,int,int,char*);
+int *length;
+double **matrix;
 
+double distance(double *,double *, int, int);
 //****************************************************************************80
 
 int main(int argc, char* argv[])
@@ -50,10 +53,10 @@ int main(int argc, char* argv[])
 {
   timestamp ( );
 
-  cout << "\n";
-  cout << "ASA136_PRB:\n";
-  cout << "  C++ version\n";
-  cout << "  Test the ASA136 library.\n";
+  //cout << "\n";
+  //cout << "ASA136_PRB:\n";
+  //cout << "  C++ version\n";
+  //cout << "  Test the ASA136 library.\n";
   if(argc<5)
   {
   	cout << "Usage: Kmeans m n k filename"<<endl;
@@ -68,16 +71,27 @@ int main(int argc, char* argv[])
   k = atoi(argv[3]);
   memset(filename,0,sizeof(filename));
   strcpy(filename,argv[4]);
+  length = new int[m];//length of each row
+  matrix = new double*[m];
   
   test01 (m,n,k,filename);
+  
+    
+  for (int i = 0; i < m; i++)
+  	delete [] matrix[i];
+  delete [] matrix;
+  cout << "Matrix deleted" << endl;
+  delete [] length;
+  
+  
 //
 //  Terminate.
 //
-  cout << "\n";
-  cout << "ASA136_PRB:\n";
-  cout << "  Normal end of execution.\n";
+  //cout << "\n";
+  //cout << "ASA136_PRB:\n";
+  //cout << "  Normal end of execution.\n";
 
-  cout << "\n";
+  //cout << "\n";
   timestamp ( );
 
   return 0;
@@ -106,24 +120,18 @@ void test01 (int m, int n, int k, char* filename)
 //
 {
   double *a;
-//double *c;
   int i;
   int *ic1;
   int ifault;
   string line;
   int iter;
   int j;
-  int t;//temp
-//  int k = 10;
-//  int m = 100;
-//  int n = 656780;
   int *nc;
   int nc_sum;
   double *wss;
   double wss_sum;
+  int len_a;
 
-// a = new double[m*n];
-// c = new double[k*n];
   ic1 = new int[m];
   nc = new int[k];
   wss = new double[k];
@@ -137,41 +145,33 @@ void test01 (int m, int n, int k, char* filename)
 //
   ifstream input (filename);
   if(!input.is_open()){
-	//cout<<"Unable to open file test.txt"<<endl;
+	cout<<"Unable to open file test.txt"<<endl;
 	return;
   }
-/*
-  for ( i = 1; i <= m; i++ )
-  {
-    for ( j = 1; j <= n; j++ )
-    {
-      input >> a[i-1+(j-1)*m];
-    }
-  }
-*/
-  double** matrix = new double*[m];
+  
+
   for(i=0 ; i<m ; ++i){
     int len = 0;
     int iSpace = 0;
     getline(input, line);
-//    //cout << "line:" << line << "\n";
     len = line.length();
     for(int l = 0; l< len;l++){
       if(isspace(int(line[l]))){
         iSpace++;
       }
     } 
-    len = iSpace;       // len of row
+    len = iSpace;       // len of row. Note: This applies for cases where each line end up with a space.
+    length[i] = len;
     matrix[i] = new double[len];
     // split line and read into matrix
     istringstream iss(line);
     for(j=0 ; j<n; ++j){           
       iss >> matrix[i][j];
-//	  //cout << "matrix[i][j]:" << matrix[i][j] << "\n";
 	}
   }
 	
   input.close ( );
+
 
 //
 //  Print a few data values.
@@ -189,20 +189,21 @@ void test01 (int m, int n, int k, char* filename)
     }
 	*/
 
+  /*
+  cout << "\n";
+  cout << "  First 5 data values:\n";
+  cout << "\n";
 
-  //cout << "\n";
-  //cout << "  First 5 data values:\n";
-  //cout << "\n";
-
-  for ( i = 1; i <= m; i++ )
+  for ( i = 1; i <= 5; i++ )
   {
-    //cout << "  " << setw(8) << i << ":";
+    cout << "  " << setw(8) << i << ":";
     for ( j = 1; j <= 4; j++ )
     {
-      //cout << "  " << setw(14) << matrix[i-1][j-1];
+      cout << "  " << setw(14) << matrix[i-1][j-1];
     }
-    //cout << "\n";
+    cout << "\n";
   }
+  */
 
 
 //
@@ -214,43 +215,28 @@ void test01 (int m, int n, int k, char* filename)
   {
     center[i-1] = new double[n];
     a = matrix[i-1];       // matrix[k-1]: each point
-    int len_a = malloc_usable_size(a)/sizeof(*a)-1;
+    len_a = length[i-1];
     for ( j = 0; j < len_a; j = j+2 )
     {
       int dim = int(a[j])-1;
       double value = a[j+1];
       center[i-1][dim] = value;
     }
-    /*
-    for ( j = 1; j <= n; j++ )
-    {
-      c[i-1+(j-1)*k] = a[i-1+(j-1)*m];
-    }
-    */
 
-	
-    //test
-    //cout << "center " << i << ": ";
-    for (t = 0; t < n; t ++){
-      if (center[i-1][t] < 0)
+    for (int tt = 0; tt < n; tt ++){
+      if (center[i-1][tt] < 0)
       {
-        center[i-1][t] = 0;
+        center[i-1][tt] = 0.0;
       }
-      //cout << center[i-1][t] << " ";
     }
-    //cout << "\n";
-    //end test
-
-
-
-
   }
 
+	
   iter = 50;
 //
 //  Compute the clusters.
 //
-  kmns ( matrix, m, n, center, k, ic1, nc, iter, wss, &ifault );
+	kmns ( m, n, center, k, ic1, nc, iter, wss, &ifault );
 
   if ( ifault != 0 )
   {
@@ -282,12 +268,16 @@ void test01 (int m, int n, int k, char* filename)
        << "  " << setw(14) << wss_sum << "\n";
 
   delete [] a;
-//  delete [] c;
   delete [] ic1;
   delete [] nc;
   delete [] wss;
-  delete [] matrix;
+  
+  for (j = 0; j < k; j++)
+  	delete [] center[j];
   delete [] center;
+  cout << "Center deleted" << endl;
+    
 
   return;
 }
+

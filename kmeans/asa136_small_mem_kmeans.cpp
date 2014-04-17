@@ -10,10 +10,10 @@
 # include <fstream>
 # include <sstream>
 # include <string>
-# include <malloc.h>
 # include <vector>
 
 using namespace std;
+extern int *length;
 
 void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], int nc[], 
 	int iter, double wss[], int *ifault )
@@ -81,7 +81,6 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
 //
 {
   double *a;
-//  double *c;
   double aa;
   double *an1;
   double *an2;
@@ -91,7 +90,6 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
   double dc;
   double dt[2];
   int i;
-  int t;//test
   int *ic2;
   int ii;
   int ij;
@@ -103,6 +101,7 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
   int *live;
   int *ncp;
   double temp;
+  int len_a;
 
   *ifault = 0;
 
@@ -118,35 +117,25 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
   d = new double[m];
   itran = new int[k];
   live = new int[k];
+  
 //
 //  For each point I, find its two closest centers, IC1(I) and
 //  IC2(I).  Assign the point to IC1(I).
 //
   for ( i = 1; i <= m; i++ )
   {
+
     ic1[i-1] = 1;
     ic2[i-1] = 2;
-    /*
-    for ( il = 1; il <= 2; il++ )
-    {
-      dt[il-1] = 0.0;
-      for ( j = 1; j <= n; j++ )
-      {
-        da = a[i-1+(j-1)*m] - c[il-1+(j-1)*k];
-        dt[il-1] = dt[il-1] + da * da;
-      }
-    }
-    */
+
     for  (il = 1; il <= 2; il++ )
     {
+
         dt[il-1] = 0.0;
-        dt[il-1] = distance(matrix[i-1],center[il-1]);
-        //cout << "dt[" << il-1 << "]:" << dt[il-1] << "\n";
+        len_a = length[i-1];
+        dt[il-1] = distance(matrix[i-1],center[il-1],len_a,n);
     }
-//   dt[0] = distance(matrix[i-1],center[0]);
-//    dt[1] = distance(matrix[i-1],center[1]);
-    //cout << "dt[0]:" << dt[0] << "\n";
-    //cout << "dt[1]:" << dt[1] << "\n";
+
 
     if ( dt[1] < dt[0] )
     {
@@ -160,14 +149,8 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
     for ( l = 3; l <= k; l++ )
     {
       db = 0.0;
-      /*
-      for ( j = 1; j <= n; j++ )
-      {
-        dc = a[i-1+(j-1)*m] - c[l-1+(j-1)*k];
-        db = db + dc * dc;
-      }
-      */
-      db = distance(matrix[i-1],center[l-1]);
+      len_a = length[i-1];
+      db = distance(matrix[i-1],center[l-1],len_a,n);
 
       if ( db < dt[1] )
       {
@@ -187,24 +170,6 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
     }
   }
 
-
-
-//test
-  //cout << "ic1: ";
-  for(t = 0 ; t < m ; t++)
-  {
-    //cout <<  ic1[t] << " ";
-  }
-  //cout << "\n";
-  //cout << "ic2: ";
-  for(t = 0 ; t < m ; t++)
-  {
-    //cout << ic2[t] << " ";
-  }
-  //cout << "\n";
-//end test
-
-
 //
 //  Update cluster centers to be the average of points contained within them.
 //
@@ -223,7 +188,7 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
     l = ic1[i-1];
     nc[l-1] = nc[l-1] + 1;  // l=1~k: each cluster center
     a = matrix[i-1];       // matrix[i-1]: each point
-    int len_a = malloc_usable_size(a)/sizeof(*a)-1;
+    len_a = length[i-1];
     for ( j = 0; j < len_a; j = j+2 )
     {
       int dim = int(a[j])-1;
@@ -232,16 +197,6 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
     }
   }
 
-
-//test
-  for(i = 0; i < k; i++){
-    //cout << "n_center " << i+1 << ": ";
-    for(j = 0; j < n; j++){
-      //cout << n_center[i][j] << " ";
-    }
-    //cout << "\n";
-  }
-//end test
 
 
 //
@@ -264,14 +219,10 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
   for ( l = 1; l <= k; l++ )
   {
     aa = ( double ) ( nc[l-1] );
-//    //cout << "aa " << l << ": " << aa << "\n";//test
-//    //cout << "n_center " << l << ": ";//test
     for ( j = 1; j <= n; j++ )
     {
       n_center[l-1][j-1] = n_center[l-1][j-1] / aa;
-//      //cout << n_center[l-1][j-1] << " ";//test
     }
-    //cout << "\n";
 
 
 //  Initialize AN1, AN2, ITRAN and NCP.
@@ -300,25 +251,19 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
     itran[l-1] = 1;
     ncp[l-1] = -1;
   }
+  
 // n_center -> center
     for (i = 0; i < k; i++){
         for (j = 0; j < n; j++){
             center[i][j] = n_center[i][j];
         }    
     }
+  
+// delete n_center
+  for (i = 0; i < k; ++i)
+  	delete [] n_center[i];
   delete [] n_center;
 
-/*
-//test  
-    for ( i = 1; i <= k; i++ ){
-        //cout << "center " << i << ": ";
-        for (t = 0; t < n; t ++){
-          //cout << center[i-1][t] << " ";
-        }
-        //cout << "\n";
-    }
-//end test
-*/
 
 //
 // transfer
@@ -370,12 +315,11 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
     }
 
   cout << "Final cluster distribution: ";
-  for(t = 0 ; t < m ; t++)
+  for(i = 0 ; i < m ; i++)
   {
-    cout <<  ic1[t] << " ";
+	cout <<  ic1[i] << " ";
   }
   cout << endl;
-
 
   }
 //
@@ -384,14 +328,15 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
 //
   if ( *ifault == 2 )
   {
-    //cout << "\n";
-    //cout << "KMNS - Warning!\n";
-    //cout << "  Maximum number of iterations reached\n";
-    //cout << "  without convergence.\n";
+    cout << "\n";
+    cout << "KMNS - Warning!\n";
+    cout << "  Maximum number of iterations reached\n";
+    cout << "  without convergence.\n";
   }
 //
 //  Compute the within-cluster sum of squares for each cluster.
 //
+  cout << "compute within-cluster sum of squares" << endl;
   for ( l = 1; l <= k; l++ )
   {
     wss[l-1] = 0.0;
@@ -401,51 +346,19 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
     }
   }
 
-
-/*
-//test  
-    for ( i = 1; i <= k; i++ ){
-        //cout << "center " << i << ": ";
-        for (t = 0; t < n; t ++){
-          //cout << center[i-1][t] << " ";
-        }
-        //cout << "\n";
-    }
-//end test
-*/
-
-
+  cout << "Initialized." << endl;
   for ( i = 1; i <= m; i++ )
   {
     ii = ic1[i-1];
     a = matrix[i-1];
-    int len_a = malloc_usable_size(a)/sizeof(*a)-1;
+    len_a = length[i-1];
     for ( j = 0; j < len_a; j = j+2 )
     {
       int dim = int(a[j])-1;
       double value = a[j+1];
       center[ii-1][dim] = center[ii-1][dim] + value;
     }
-    /*
-    for ( j = 1; j <= n; j++ )
-    {
-      c[ii-1+(j-1)*k] = c[ii-1+(j-1)*k] + a[i-1+(j-1)*m];
-    }
-    */
   }
-
-
-/*
-//test  
-    for ( i = 1; i <= k; i++ ){
-        //cout << "center " << i << ": ";
-        for (t = 0; t < n; t ++){
-          //cout << center[i-1][t] << " ";
-        }
-        //cout << "\n";
-    }
-//end test
-*/
 
 
   for ( j = 1; j <= n; j++ )
@@ -456,17 +369,6 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
     }
   }
 
-/*
-//test  
-    for ( i = 1; i <= k; i++ ){
-        //cout << "center " << i << ": ";
-        for (t = 0; t < n; t ++){
-          //cout << center[i-1][t] << " ";
-        }
-        //cout << "\n";
-    }
-//end test
-*/
   
   for (i = 1; i <= m; i++ ){
     ii = ic1[i-1];
@@ -478,7 +380,7 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
 
     // for each dim in matrix[i-1], subcribe it from center[ii-1]
     a = matrix[i-1];
-    int len_a = malloc_usable_size(a)/sizeof(*a)-1;
+    len_a = length[i-1];
     for ( j = 0; j < len_a; j = j+2 )
     {
       int dim = int(a[j])-1;
@@ -489,31 +391,16 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
         wss[ii-1] = wss[ii-1] + tmp[t]*tmp[t];
     }    
   }
-  /*  
-    for ( i = 1; i <= m; i++ )
-    {
-      ii = ic1[i-1];
-      da = matrix[i-1][j-1] - c[ii-1][j-1];
-      wss[ii-1] = wss[ii-1] + da * da;
-    }
-    */
 
-/*
-//test
-  for ( l = 1; l <= k; l++ )
-  {
-    //cout << "wss[" << l-1 << "]:" << wss[l-1] << "\n";
-  }
-//end test
-*/
 
   cout << "Final cluster distribution: ";
-  for(t = 0 ; t < m ; t++)
+  for(i = 0 ; i < m ; i++)
   {
-    cout <<  ic1[t] << " ";
+    cout <<  ic1[i] << " ";
   }
   cout << endl;
 
+  delete [] a;
   delete [] ic2;
   delete [] an1;
   delete [] an2;
@@ -621,25 +508,8 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
   int ll;
   double r2;
   double rr;
-//cout << "\n" << "optra!!!" << "\n";
-//test
-  int t;
-  //cout << "Cluster distribution: ";
-  for(t = 0 ; t < m ; t++)
-  {
-    //cout <<  ic1[t] << " ";
-  }
-  //cout << "\n";
-//end test
-//test
-   for(i=1; i<= k; i++){
-    //cout << "center " << i << ": ";
-    for (t = 0; t < n; t ++){
-      //cout << center[i-1][t] << " ";
-    }
-    //cout << "\n";
-  }
-//end test
+  int len_a;
+
 
 //
 //  If cluster L is updated in the last quick-transfer stage, it
@@ -654,20 +524,18 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
       live[l-1] = m + 1;
     }
   }
-
+  cout << "Begin." << endl;
   for ( i = 1; i <= m; i++ )
   {
-
+    cout << "i: " << i << endl;
     *indx = *indx + 1;
     l1 = ic1[i-1];
     l2 = ic2[i-1];
-    //cout << "ic1[" << i-1 << "]: " << ic1[i-1] << "\n";
-    //cout << "ic2[" << i-1 << "]: " << ic2[i-1] << "\n";
     ll = l2;
 //
 //  If point I is the only member of cluster L1, no transfer.
 //
-    //cout << "nc[" << l1-1 << "]: " << nc[l1-1] << "\n";
+
     if ( 1 < nc[l1-1]  )
     {
 //
@@ -677,38 +545,28 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
       if ( ncp[l1-1] != 0 )
       {
         de = 0.0;
-        /*
-        for ( j = 1; j <= n; j++ )
-        {
-          df = matrix[i-1][j-1] - center[l1-1][j-1];
-          de = de + df * df;
-        }
-        */
-        de = distance(matrix[i-1],center[l1-1]);
-        //cout << "de:" << de << "\n";
-        //cout << "an1[" << l1-1 << "]: " << an1[l1-1] << "\n";
+        len_a = length[i-1];
+        de = distance(matrix[i-1],center[l1-1],len_a,n);
         d[i-1] = de * an1[l1-1];
-        //cout << "d[" << i-1 << "]: " << d[i-1] << "\n";
       }
 //
 //  Find the cluster with minimum R2.
 //
       da = 0.0;
-      /*
-      for ( j = 1; j <= n; j++ )
-      {
-        db = a[i-1+(j-1)*m] - c[l2-1+(j-1)*k];
-        da = da + db * db;
-      }
-      */
-      da = distance(matrix[i-1],center[l2-1]);
-      //cout << "da:" << da << "\n";
-      //cout << "an2[" << l2-1 << "]: " << an2[l2-1] << "\n";
+      len_a = length[i-1];
+      cout << "len " << i-1 << ": " << len_a << endl;
+      cout << "center " << l2-1 << endl;
+      double *c = matrix[i-1];
+      int len_c = length[i-1];
+      for (j = 0; j<len_c; j++)
+      	cout << c[j] << " ";
+      cout << endl;
+      da = distance(matrix[i-1],center[l2-1],len_a,n);
       r2 = da * an2[l2-1];
-      //cout << "r2" << r2 << "\n";
 
       for ( l = 1; l <= k; l++ )
       {
+
 //
 //  If LIVE(L1) <= I, then L1 is not in the live set.   If this is
 //  true, we only need to consider clusters that are in the live set
@@ -721,22 +579,14 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
           //cout << "rr" << rr << "\n";
 
           dc = 0.0;
-          /*
-          for ( j = 1; j <= n; j++ )
-          {
-            dd = a[i-1+(j-1)*m] - c[l-1+(j-1)*k];
-            dc = dc + dd * dd;
-          }
-          */
-          dc = distance(matrix[i-1],center[l-1]);
-          //cout << "dc" << dc << "\n";
+          len_a = length[i-1];
+          dc = distance(matrix[i-1],center[l-1],len_a,n);
 
           if ( dc < rr )
           {
             r2 = dc * an2[l-1];
             l2 = l;
-          }          
-          //cout << "r2:" << r2 << "\n";
+          } 
         }
       }
 //
@@ -745,7 +595,6 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
       if ( d[i-1] <= r2 )
       {
         ic2[i-1] = l2;
-        //cout << "ic2[" << i-1 << "]: " << ic2[i-1] << "\n";
       }
 //
 //  Update cluster centers, LIVE, NCP, AN1 and AN2 for clusters L1 and
@@ -753,15 +602,7 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
 //
       else
       {
-//test
-      int t;
-      //cout << "Final cluster distribution: ";
-      for(t = 0 ; t < m ; t++)
-      {
-        //cout <<  ic1[t] << " ";
-      }
-      //cout << "\n";
-//end test
+
 
         *indx = 0;
         live[l1-1] = m + i;
@@ -773,42 +614,31 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
         al2 = ( double ) ( nc[l2-1] );
         alt = al2 + 1.0;
 
-        /*
-        for ( j = 1; j <= n; j++ )
-        {
-          c[l1-1+(j-1)*k] = ( c[l1-1+(j-1)*k] * al1 - a[i-1+(j-1)*m] ) / alw;
-          c[l2-1+(j-1)*k] = ( c[l2-1+(j-1)*k] * al2 + a[i-1+(j-1)*m] ) / alt;
-        }
-        */
         a = matrix[i-1];
-        int len_a = malloc_usable_size(a)/sizeof(*a)-1;
+        len_a = length[i-1];
         int *tmp = new int[len_a/2];//temperary store dim in a
-        t = 0;
+        int tt = 0;
         for ( j = 0; j < len_a; j = j+2 )
         {
             int dim = int(a[j])-1;
-            tmp[t] = dim;
-            t++;
+            tmp[tt] = dim;
+            tt++;
             double value = a[j+1];
             center[l1-1][dim] = (center[l1-1][dim] * al1 - value ) / alw;
             center[l2-1][dim] = (center[l2-1][dim] * al2 + value ) / alt;
-            //cout << "center[" << l1-1 << "][" << dim << "]:" << center[l1-1][dim] << "\n";
-            //cout << "center[" << l2-1 << "][" << dim << "]:" << center[l2-1][dim] << "\n";
         }
         // deal with the rest dim in center which is not in a
         for (j = 0; j < n; j++ ){
             bool flag = true; 
-            for (t = 0; t < len_a/2; t++){
-                if (j == tmp[t]){
+            for (tt = 0; tt < len_a/2; tt++){
+                if (j == tmp[tt]){
                     flag = false;
                     break;
                 }
             }
             if(flag){    
                 center[l1-1][j] = center[l1-1][j] * al1 / alw;
-                center[l2-1][j] = center[l2-1][j] * al2 / alw;  
-                //cout << "center[" << l1-1 << "][" << j << "]:" << center[l1-1][j] << "\n";
-                //cout << "center[" << l2-1 << "][" << j << "]:" << center[l2-1][j] << "\n"; 
+                center[l2-1][j] = center[l2-1][j] * al2 / alw;
             }
         }
         delete [] tmp;
@@ -828,26 +658,6 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
         an2[l2-1] = alt / ( alt + 1.0 );
         ic1[i-1] = l2;
         ic2[i-1] = l1;
-//test
-//      int t;
-      //cout << "New cluster distribution: ";
-      for(t = 0 ; t < m ; t++)
-      {
-        //cout <<  ic1[t] << " ";
-      }
-      //cout << "\n";
-//end test
-
-//test
-   //cout << "New center!" << "\n";
-   for(i=1; i<= k; i++){
-    //cout << "center " << i << ": ";
-    for (t = 0; t < n; t ++){
-      //cout << center[i-1][t] << " ";
-    }
-    //cout << "\n";
-  }
-//end test
       }
     }
 
@@ -866,16 +676,7 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
     live[l-1] = live[l-1] - m;
   }
 
-//test
-//      int t;
-      //cout << "Final cluster distribution: ";
-      for(t = 0 ; t < m ; t++)
-      {
-        //cout <<  ic1[t] << " ";
-      }
-      //cout << "\n";
-//end test
-
+  delete [] a;
   return;
 }
 //****************************************************************************80
@@ -974,6 +775,8 @@ void qtran ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
   int l1;
   int l2;
   double r2;
+  int len_a;
+  
 //
 //  In the optimal transfer stage, NCP(L) indicates the step at which
 //  cluster L is last updated.   In the quick transfer stage, NCP(L)
@@ -982,11 +785,12 @@ void qtran ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
   icoun = 0;
   istep = 0;
 
+  cout << "begine." << endl;
   for ( ; ; )
   {
     for ( i = 1; i <= m; i++ )
     {
-
+      cout << "icoun: " << icoun << " i: " << i << endl;
       icoun = icoun + 1;
       istep = istep + 1;
       l1 = ic1[i-1];
@@ -1005,14 +809,8 @@ void qtran ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
         if ( istep <= ncp[l1-1] )
         {
           da = 0.0;
-          /*
-          for ( j = 1; j <= n; j++ )
-          {
-            db = a[i-1+(j-1)*m] - c[l1-1+(j-1)*k];
-            da = da + db * db;
-          }
-          */
-          da = distance(matrix[i-1], center[l1-1]);
+          len_a = length[i-1];
+          da = distance(matrix[i-1], center[l1-1],len_a,n);
           d[i-1] = da * an1[l1-1];
         }
 //
@@ -1024,14 +822,8 @@ void qtran ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
           r2 = d[i-1] / an2[l2-1];
 
           dd = 0.0;
-          /*
-          for ( j = 1; j <= n; j++ )
-          {
-            de = a[i-1+(j-1)*m] - c[l2-1+(j-1)*k];
-            dd = dd + de * de;
-          }
-          */
-          dd = distance(matrix[i-1], center[l2-1]);
+          len_a = length[i-1];
+          dd = distance(matrix[i-1], center[l2-1],len_a,n);
 //
 //  Update cluster centers, NCP, NC, ITRAN, AN1 and AN2 for clusters
 //  L1 and L2.   Also update IC1(I) and IC2(I).   Note that if any
@@ -1050,15 +842,8 @@ void qtran ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
             al2 = ( double ) ( nc[l2-1] );
             alt = al2 + 1.0;
 
-            /*
-            for ( j = 1; j <= n; j++ )
-            {
-              c[l1-1+(j-1)*k] = ( c[l1-1+(j-1)*k] * al1 - a[i-1+(j-1)*m] ) / alw;
-              c[l2-1+(j-1)*k] = ( c[l2-1+(j-1)*k] * al2 + a[i-1+(j-1)*m] ) / alt;
-            }
-            */
             a = matrix[i-1];
-            int len_a = malloc_usable_size(a)/sizeof(*a)-1;
+            len_a = length[i-1];
             for ( j = 0; j < len_a; j = j+2 )
             {
                 int dim = int(a[j])-1;
@@ -1088,8 +873,11 @@ void qtran ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
 //
 //  If no re-allocation took place in the last M steps, return.
 //
+
       if ( icoun == m )
       {
+        cout << "end qtran" << endl;  
+  		delete [] a;
         return;
       }
     }
@@ -1186,15 +974,14 @@ void timestamp ( )
 
 //****************************************************************************80
 
-double distance(double a[],double c[]){
+double distance(double a[],double c[], int len_a, int len_c)
+{
 
 //****************************************************************************80
 // Calculate distance of a dynamic array to a static array 
     int i;
     int j;
 
-	int len_a = malloc_usable_size(a)/sizeof(*a)-1;
-	int len_c = malloc_usable_size(c)/sizeof(*c)-1;
 
     double *tmp = new double[len_c]; 
     // initiate tmp
@@ -1211,56 +998,8 @@ double distance(double a[],double c[]){
     for (i = 0; i < len_c; i ++){
         dt = dt + tmp[i] * tmp[i];
     }
+    
+    delete [] tmp;
     return dt;
 
-/*
-//	printf("test\n");
-//	//cout << "len_a:" << len_a << "\n";
-//	//cout << "len_c:" << len_c << "\n";
-	int ia=0;
-	int ic=0;
-	double tmp;
-	double dt = 0;
-
-	// 
-	while(ia <= len_a && ic <= len_c){
-//		//cout << "ia" << ia << "\n";
-//		//cout << "ic" << ic << "\n";
-//		//cout << "dt: " << dt << "\n";
-		if(a[ia] < c[ic]){
-			tmp = a[ia+1];
-//			//cout << "tmp:" << tmp << "\n";
-			dt = dt + tmp*tmp;
-			ia = ia + 2;
-		}
-		else if(c[ic] < a[ia]){
-			tmp = c[ic+1];
-//          //cout << "tmp:" << tmp << "\n";
-			dt = dt + tmp*tmp;
-			ic = ic + 2;
-		}
-		else{
-			tmp = a[ia+1]-c[ic+1];
-//          //cout << "tmp:" << tmp << "\n";
-			dt = dt + tmp*tmp;
-			ia = ia + 2;
-			ic = ic + 2;
-		}		
-	}
-
-	// if c reach the end first, add the rest in a to dt
-	if(ia<len_a){
-		for( ia; ia<len_a; ia=ia+2){
-			tmp = a[ia+1];
-			dt = dt + tmp*tmp;
-		}
-	}
-	else{		// if(ic < len_c){
-		for(ic;ic<len_c;ic=ic+2){
-			tmp = c[ic+1];
-			dt = dt + tmp*tmp;
-		}
-	}
-	return dt;
-*/
 }

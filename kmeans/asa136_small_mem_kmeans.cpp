@@ -1,5 +1,5 @@
 //# include "stdafx.h"
-# include "asa136_kmeans_v3.h"
+# include "asa136_kmeans_v4.h"
 # include <cstdlib>
 # include <iostream>
 # include <iomanip>
@@ -265,7 +265,13 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
   	delete [] n_center[i];
   delete [] n_center;
 
-
+  cout << "Initial cluster distribution: ";
+  for(i = 0 ; i < m ; i++)
+  {
+	cout <<  ic1[i] << " ";
+  }
+  cout << endl;
+  
 //
 // transfer
 //
@@ -281,13 +287,33 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
 //  induce the maximum reduction in within-cluster sum of squares.
 //
     optra ( m, n, center, k, ic1, ic2, nc, an1, an2, ncp, d, itran, live, &indx );
-    cout << "optra." << endl;
+		cout << "optra" << endl;
+		/*
+    cout << "Cluster distribution after optra: ";
+		for(i = 0 ; i < m ; i++)
+		{
+			cout <<  ic1[i] << " ";
+		}
+		cout << endl;*/
+		/*
+		//print center
+		for( i= 1; i <= k; i++)
+		{
+			cout << "\n~~~~~~~~~~center " << i << "~~~~~~~~~~\n" << endl;
+			for (j = 1; j <+ n; j++)
+			{
+			  cout << center[i-1][j-1] << " ";
+			  if (j%100 == 0)
+			  	cout << "\n";
+			}
+		}*/
 //
 //  Stop if no transfer took place in the last M optimal transfer steps.
 //
     if ( indx == m )
     {
       *ifault = 0;
+      cout << "\nProgram Break!\n" << endl;
       break;
     }
 //
@@ -297,7 +323,26 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
 //  data until no further change is to take place.
 //
     qtran ( m, n, center, k, ic1, ic2, nc, an1, an2, ncp, d, itran, &indx );
-    cout << "qtran." << endl;
+    cout << "qtran" << endl;
+    /*
+    cout << "Cluster distribution after qtran: ";
+		for(i = 0 ; i < m ; i++)
+		{
+			cout <<  ic1[i] << " ";
+		}
+		cout << endl;*/
+		/*
+		//print center
+		for( i= 1; i <= k; i++)
+		{
+			cout << "\n~~~~~~~~~~center " << i << "~~~~~~~~~~\n" << endl;
+			for (j = 1; j <+ n; j++)
+			{
+			  cout << center[i-1][j-1] << " ";
+			  if (j%100 == 0)
+			  	cout << "\n";
+			}
+		}*/
 //
 //  If there are only two clusters, there is no need to re-enter the
 //  optimal transfer stage.
@@ -348,7 +393,7 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
     }
   }
 
-//  cout << "Initialized." << endl;
+  cout << "Initialized." << endl;
   for ( i = 1; i <= m; i++ )
   {
     ii = ic1[i-1];
@@ -362,7 +407,7 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
     }
   }
 
-
+  cout << "test" << endl;
   for ( j = 1; j <= n; j++ )
   {
     for ( l = 1; l <= k; l++ )
@@ -370,29 +415,29 @@ void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[],
       center[l-1][j-1] = center[l-1][j-1] / ( double ) ( nc[l-1] );
     }
   }
-
   
-  for (i = 1; i <= m; i++ ){
-    ii = ic1[i-1];
-    // tmp is to store and calculate difference in center[ii-1] and matrix[i-1]
-    double *tmp = new double[n]; 
-    for (int t = 0; t < n; t++){
-        tmp[t] = center[ii-1][t];
-    }
+	for (i = 1; i <= m; i++ )
+	{
+	  ii = ic1[i-1];
+	  // tmp is to store and calculate difference in center[ii-1] and matrix[i-1]
+	  double *tmp = new double[n]; 
+	  for (int t = 0; t < n; t++){
+			tmp[t] = center[ii-1][t];
+	  }
 
-    // for each dim in matrix[i-1], subcribe it from center[ii-1]
-//    a = matrix[i-1];
-    len_a = length[i-1];
-    for ( j = 0; j < len_a; j = j+2 )
-    {
-      int dim = int(matrix[i-1][j])-1;
-      double value = matrix[i-1][j+1];
-      tmp[dim] = value - center[ii-1][j-1];
-    }
-    for(int t = 0; t < n; t++){
-        wss[ii-1] = wss[ii-1] + tmp[t]*tmp[t];
-    }    
-  }
+	  // for each dim in matrix[i-1], deduct it from center[ii-1]
+	  len_a = length[i-1];
+	  for ( j = 0; j < len_a; j = j+2 )
+	  {
+			int dim = int(matrix[i-1][j])-1;
+			double value = matrix[i-1][j+1];
+			tmp[dim] = value - center[ii-1][j-1];
+	  }
+	  for(int t = 0; t < n; t++){
+			wss[ii-1] = wss[ii-1] + tmp[t]*tmp[t];
+	  }   
+	  delete [] tmp; 
+	}
 
 
   cout << "Final cluster distribution: ";
@@ -782,7 +827,7 @@ void qtran ( int m, int n, double *center[], int k, int ic1[],
   {
     for ( i = 1; i <= m; i++ )
     {
-
+			cout << "~~~~~~~~~~" << i << "~~~~~~~~~~" << endl;
       icoun = icoun + 1;
       istep = istep + 1;
       l1 = ic1[i-1];
@@ -792,6 +837,7 @@ void qtran ( int m, int n, double *center[], int k, int ic1[],
 //
       if ( 1 < nc[l1-1] )
       {
+      	cout << "in the if" << endl;
 //
 //  If NCP(L1) < ISTEP, no need to re-compute distance from point I to
 //  cluster L1.   Note that if cluster L1 is last updated exactly M
@@ -800,6 +846,7 @@ void qtran ( int m, int n, double *center[], int k, int ic1[],
 //
         if ( istep <= ncp[l1-1] )
         {
+         	cout << "test1" << endl;
           da = 0.0;
           len_a = length[i-1];
           da = distance(matrix[i-1], center[l1-1],len_a,n);
@@ -811,6 +858,7 @@ void qtran ( int m, int n, double *center[], int k, int ic1[],
 //
         if ( istep < ncp[l1-1] || istep < ncp[l2-1] )
         {
+         	cout << "test2" << endl;
           r2 = d[i-1] / an2[l2-1];
 
           dd = 0.0;
@@ -823,6 +871,7 @@ void qtran ( int m, int n, double *center[], int k, int ic1[],
 //
           if ( dd < r2 )
           {
+          	cout << "dd<r2" << endl;
             icoun = 0;
             *indx = 0;
             itran[l1-1] = 1;
@@ -834,16 +883,36 @@ void qtran ( int m, int n, double *center[], int k, int ic1[],
             al2 = ( double ) ( nc[l2-1] );
             alt = al2 + 1.0;
 
-//            a = matrix[i-1];
-            len_a = length[i-1];
-            for ( j = 0; j < len_a; j = j+2 )
-            {
-                int dim = int(matrix[i-1][j])-1;
-                double value = matrix[i-1][j+1];
-                center[l1-1][dim] = (center[l1-1][dim] * al1 - value ) / alw;
-                center[l2-1][dim] = (center[l2-1][dim] * al2 + value ) / alt;
-            }
-
+         		cout << "test3-1" << endl;					
+						len_a = length[i-1];
+						int *tmp = new int[len_a/2];//temperary store dim in a
+						int tt = 0;
+						for ( j = 0; j < len_a; j = j+2 )
+						{
+						    int dim = int(matrix[i-1][j])-1;
+						    tmp[tt] = dim;
+						    tt++;
+						    double value = matrix[i-1][j+1];
+						    center[l1-1][dim] = (center[l1-1][dim] * al1 - value ) / alw;
+						    center[l2-1][dim] = (center[l2-1][dim] * al2 + value ) / alt;
+						}
+						
+						// deal with the rest dim in center which is not in matrix[i-1]
+						for (j = 0; j < n; j++ ){
+						    bool flag = true; 
+						    for (tt = 0; tt < len_a/2; tt++){
+						        if (j == tmp[tt]){
+						            flag = false;
+						            break;
+						        }
+						    }
+						    if(flag){    
+						        center[l1-1][j] = center[l1-1][j] * al1 / alw;
+						        center[l2-1][j] = center[l2-1][j] * al2 / alw;
+						    }
+						}
+						delete [] tmp;
+         		cout << "test3-2" << endl;	
             nc[l1-1] = nc[l1-1] - 1;
             nc[l2-1] = nc[l2-1] + 1;
             an2[l1-1] = alw / al1;
@@ -855,6 +924,7 @@ void qtran ( int m, int n, double *center[], int k, int ic1[],
             {
               an1[l1-1] = r8_huge ( );
             }
+            cout << "test3-3" << endl;	
             an1[l2-1] = alt / al2;
             an2[l2-1] = alt / ( alt + 1.0 );
             ic1[i-1] = l2;
@@ -865,7 +935,7 @@ void qtran ( int m, int n, double *center[], int k, int ic1[],
 //
 //  If no re-allocation took place in the last M steps, return.
 //
-
+			cout << "icoun = " << icoun << endl;
       if ( icoun == m )
       { 
         return;

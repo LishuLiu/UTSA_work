@@ -2,7 +2,7 @@
 //
 
 //# include "stdafx.h"
-# include "asa136_kmeans_v3.h"
+# include "asa136_kmeans_v4.h"
 # include <cstdlib>
 # include <iostream>
 # include <iomanip>
@@ -232,7 +232,7 @@ void test01 (int m, int n, int k, char* filename)
   }
 
 	
-  iter = 50;
+  iter = 10;
 //
 //  Compute the clusters.
 //
@@ -271,6 +271,19 @@ void test01 (int m, int n, int k, char* filename)
   delete [] ic1;
   delete [] nc;
   delete [] wss;
+  
+  //print center
+  for( i= 1; i <= k; i++)
+  {
+  	cout << "\n~~~~~~~~~~center " << i << "~~~~~~~~~~\n" << endl;
+  	for (j = 1; j <+ n; j++)
+  	{
+  	  cout << center[i-1][j-1] << " ";
+  	  if (j%100 == 0)
+  	  	cout << "\n";
+  	}
+  }
+  
   
   for (j = 0; j < k; j++)
   	delete [] center[j];

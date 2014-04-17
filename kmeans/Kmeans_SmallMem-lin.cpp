@@ -76,13 +76,13 @@ int main(int argc, char* argv[])
   
   test01 (m,n,k,filename);
   
-    
+   /* 
   for (int i = 0; i < m; i++)
   	delete [] matrix[i];
   delete [] matrix;
   cout << "Matrix deleted" << endl;
   delete [] length;
-  
+  */
   
 //
 //  Terminate.
@@ -119,7 +119,7 @@ void test01 (int m, int n, int k, char* filename)
 //    John Burkardt
 //
 {
-  double *a;
+//  double *a;
   int i;
   int *ic1;
   int ifault;
@@ -214,12 +214,12 @@ void test01 (int m, int n, int k, char* filename)
   for ( i = 1; i <= k; i++ )
   {
     center[i-1] = new double[n];
-    a = matrix[i-1];       // matrix[k-1]: each point
+//    a = matrix[i-1];       // matrix[k-1]: each point
     len_a = length[i-1];
     for ( j = 0; j < len_a; j = j+2 )
     {
-      int dim = int(a[j])-1;
-      double value = a[j+1];
+      int dim = int(matrix[i-1][j])-1;
+      double value = matrix[i-1][j+1];
       center[i-1][dim] = value;
     }
 
@@ -267,7 +267,7 @@ void test01 (int m, int n, int k, char* filename)
        << "  " << setw(8) << nc_sum
        << "  " << setw(14) << wss_sum << "\n";
 
-  delete [] a;
+//  delete [] a;
   delete [] ic1;
   delete [] nc;
   delete [] wss;
@@ -275,7 +275,7 @@ void test01 (int m, int n, int k, char* filename)
   for (j = 0; j < k; j++)
   	delete [] center[j];
   delete [] center;
-  cout << "Center deleted" << endl;
+  cout << "\nCenter deleted!\n" << endl;
     
 
   return;

@@ -1,5 +1,5 @@
 //# include "stdafx.h"
-# include "asa136_small_mem_kmeans.h"
+# include "asa136_kmeans_v3.h"
 # include <cstdlib>
 # include <iostream>
 # include <iomanip>
@@ -14,8 +14,9 @@
 
 using namespace std;
 extern int *length;
+extern double **matrix;
 
-void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], int nc[], 
+void kmns ( int m, int n, double *center[], int k, int ic1[], int nc[], 
 	int iter, double wss[], int *ifault )
 
 //****************************************************************************80
@@ -80,7 +81,7 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
 //    3, K is less than or equal to 1, or greater than or equal to M.
 //
 {
-  double *a;
+//  double *a;
   double aa;
   double *an1;
   double *an2;
@@ -187,12 +188,12 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
   {
     l = ic1[i-1];
     nc[l-1] = nc[l-1] + 1;  // l=1~k: each cluster center
-    a = matrix[i-1];       // matrix[i-1]: each point
+//    a = matrix[i-1];       // matrix[i-1]: each point
     len_a = length[i-1];
     for ( j = 0; j < len_a; j = j+2 )
     {
-      int dim = int(a[j])-1;
-      double value = a[j+1];
+      int dim = int(matrix[i-1][j])-1;
+      double value = matrix[i-1][j+1];
       n_center[l-1][dim] = n_center[l-1][dim] + value;
     }
   }
@@ -279,7 +280,7 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
 //  point is re-allocated, if necessary, to the cluster that will
 //  induce the maximum reduction in within-cluster sum of squares.
 //
-    optra ( matrix, m, n, center, k, ic1, ic2, nc, an1, an2, ncp, d, itran, live, &indx );
+    optra ( m, n, center, k, ic1, ic2, nc, an1, an2, ncp, d, itran, live, &indx );
     cout << "optra." << endl;
 //
 //  Stop if no transfer took place in the last M optimal transfer steps.
@@ -295,7 +296,7 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
 //  IC2(I), from its present cluster, IC1(I).   Loop through the
 //  data until no further change is to take place.
 //
-    qtran ( matrix, m, n, center, k, ic1, ic2, nc, an1, an2, ncp, d, itran, &indx );
+    qtran ( m, n, center, k, ic1, ic2, nc, an1, an2, ncp, d, itran, &indx );
     cout << "qtran." << endl;
 //
 //  If there are only two clusters, there is no need to re-enter the
@@ -321,6 +322,7 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
   }
   cout << endl;
 
+  timestamp ( );
   }
 //
 //  If the maximum number of iterations was taken without convergence,
@@ -346,16 +348,16 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
     }
   }
 
-  cout << "Initialized." << endl;
+//  cout << "Initialized." << endl;
   for ( i = 1; i <= m; i++ )
   {
     ii = ic1[i-1];
-    a = matrix[i-1];
+//    a = matrix[i-1];
     len_a = length[i-1];
     for ( j = 0; j < len_a; j = j+2 )
     {
-      int dim = int(a[j])-1;
-      double value = a[j+1];
+      int dim = int(matrix[i-1][j])-1;
+      double value = matrix[i-1][j+1];
       center[ii-1][dim] = center[ii-1][dim] + value;
     }
   }
@@ -379,12 +381,12 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
     }
 
     // for each dim in matrix[i-1], subcribe it from center[ii-1]
-    a = matrix[i-1];
+//    a = matrix[i-1];
     len_a = length[i-1];
     for ( j = 0; j < len_a; j = j+2 )
     {
-      int dim = int(a[j])-1;
-      double value = a[j+1];
+      int dim = int(matrix[i-1][j])-1;
+      double value = matrix[i-1][j+1];
       tmp[dim] = value - center[ii-1][j-1];
     }
     for(int t = 0; t < n; t++){
@@ -400,7 +402,6 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
   }
   cout << endl;
 
-  delete [] a;
   delete [] ic2;
   delete [] an1;
   delete [] an2;
@@ -413,7 +414,7 @@ void kmns ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
 }
 //****************************************************************************80
 
-void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
+void optra ( int m, int n, double *center[], int k, int ic1[], 
   int ic2[], int nc[], double an1[], double an2[], int ncp[], double d[], 
   int itran[], int live[], int *indx )
 
@@ -489,7 +490,7 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
 //    transfer took place.
 //
 {
-  double *a;
+//  double *a;
   double al1;
   double al2;
   double alt;
@@ -524,10 +525,10 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
       live[l-1] = m + 1;
     }
   }
-  cout << "Begin." << endl;
+
   for ( i = 1; i <= m; i++ )
   {
-    cout << "i: " << i << endl;
+  
     *indx = *indx + 1;
     l1 = ic1[i-1];
     l2 = ic2[i-1];
@@ -554,13 +555,6 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
 //
       da = 0.0;
       len_a = length[i-1];
-      cout << "len " << i-1 << ": " << len_a << endl;
-      cout << "center " << l2-1 << endl;
-      double *c = matrix[i-1];
-      int len_c = length[i-1];
-      for (j = 0; j<len_c; j++)
-      	cout << c[j] << " ";
-      cout << endl;
       da = distance(matrix[i-1],center[l2-1],len_a,n);
       r2 = da * an2[l2-1];
 
@@ -614,20 +608,20 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
         al2 = ( double ) ( nc[l2-1] );
         alt = al2 + 1.0;
 
-        a = matrix[i-1];
+//        a = matrix[i-1];
         len_a = length[i-1];
         int *tmp = new int[len_a/2];//temperary store dim in a
         int tt = 0;
         for ( j = 0; j < len_a; j = j+2 )
         {
-            int dim = int(a[j])-1;
+            int dim = int(matrix[i-1][j])-1;
             tmp[tt] = dim;
             tt++;
-            double value = a[j+1];
+            double value = matrix[i-1][j+1];
             center[l1-1][dim] = (center[l1-1][dim] * al1 - value ) / alw;
             center[l2-1][dim] = (center[l2-1][dim] * al2 + value ) / alt;
         }
-        // deal with the rest dim in center which is not in a
+        // deal with the rest dim in center which is not in matrix[i-1]
         for (j = 0; j < n; j++ ){
             bool flag = true; 
             for (tt = 0; tt < len_a/2; tt++){
@@ -676,12 +670,11 @@ void optra ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
     live[l-1] = live[l-1] - m;
   }
 
-  delete [] a;
   return;
 }
 //****************************************************************************80
 
-void qtran ( double *matrix[], int m, int n, double *center[], int k, int ic1[], 
+void qtran ( int m, int n, double *center[], int k, int ic1[], 
   int ic2[], int nc[], double an1[], double an2[], int ncp[], double d[], 
   int itran[], int *indx )
 
@@ -759,7 +752,7 @@ void qtran ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
 //    since the last transfer.
 //
 {
-  double *a;
+//  double *a;
   double al1;
   double al2;
   double alt;
@@ -785,12 +778,11 @@ void qtran ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
   icoun = 0;
   istep = 0;
 
-  cout << "begine." << endl;
   for ( ; ; )
   {
     for ( i = 1; i <= m; i++ )
     {
-      cout << "icoun: " << icoun << " i: " << i << endl;
+
       icoun = icoun + 1;
       istep = istep + 1;
       l1 = ic1[i-1];
@@ -842,12 +834,12 @@ void qtran ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
             al2 = ( double ) ( nc[l2-1] );
             alt = al2 + 1.0;
 
-            a = matrix[i-1];
+//            a = matrix[i-1];
             len_a = length[i-1];
             for ( j = 0; j < len_a; j = j+2 )
             {
-                int dim = int(a[j])-1;
-                double value = a[j+1];
+                int dim = int(matrix[i-1][j])-1;
+                double value = matrix[i-1][j+1];
                 center[l1-1][dim] = (center[l1-1][dim] * al1 - value ) / alw;
                 center[l2-1][dim] = (center[l2-1][dim] * al2 + value ) / alt;
             }
@@ -875,9 +867,7 @@ void qtran ( double *matrix[], int m, int n, double *center[], int k, int ic1[],
 //
 
       if ( icoun == m )
-      {
-        cout << "end qtran" << endl;  
-  		delete [] a;
+      { 
         return;
       }
     }
